@@ -1,0 +1,691 @@
+#include <EEPROM.h>
+#include <Wire.h>
+#include <Time.h>
+#include <DS1307RTC.h>
+
+
+int dur = 0;
+int val = 0;
+int hron = 12;
+int mnon = 0;
+int hroff = 0;
+int mnoff = 0;
+byte hhron = 0;
+byte mmnon = 0;
+byte hhroff = 0;
+byte mmnoff = 0;
+int value = 0;
+boolean lights = false;
+boolean pumps = false;
+int hr = 0;
+int sec = 0;
+int minu = 0;
+int feedarray[61][3];
+int cnt = 19;
+int i = 0;
+int cnter = 0;
+int val2 = 0;
+int val3 = 0;
+int m = 19;
+int tmp = 0;
+int ppin = 9;
+int lpin = 7;
+int noww = 8;
+int nowval = 0;
+int chhk[2] = {0, 0};
+void setup(){
+pinMode(ppin, OUTPUT);
+pinMode(lpin,OUTPUT);
+pinMode(noww, INPUT_PULLUP);
+digitalWrite(ppin, LOW);  
+digitalWrite(lpin, LOW); 
+  
+  
+  
+Serial.begin(9600);
+Serial.setTimeout(15000);
+Serial.println("Menu");
+Serial.println("1 Lights");
+Serial.println("2 Pump");
+Serial.println("3 Stored values");
+hhron = EEPROM.read(0);
+mmnon = EEPROM.read(1);
+hhroff = EEPROM.read(2);
+mmnoff = EEPROM.read(3);
+getpumpee();
+//Serial.println("Getting this far");
+
+//for(int k = 0; k < 30; k++) 
+//{feedarray[k][0] = 10;}  
+  pntpmp();
+}
+
+
+void gettime(){
+
+  tmElements_t tm;
+
+  if (RTC.read(tm)) {
+    Serial.print("Ok, Time = ");
+    hr = tm.Hour;
+    Serial.print(hr);
+    Serial.write(':');
+   minu = tm.Minute;
+   Serial.print(minu);
+    Serial.write(':');
+    sec = tm.Second;
+    Serial.print(sec);
+    Serial.println(".");
+  } else {
+    if (RTC.chipPresent()) {
+      Serial.println("The DS1307 is stopped.  Please run the SetTime");
+      Serial.println("example to initialize the time and begin running.");
+      Serial.println();
+    } else {
+      Serial.println("DS1307 read error!  Please check the circuitry.");
+      Serial.println();
+    }
+    delay(9000);
+  }
+  delay(1000);
+}
+
+
+void getpumpee(){
+  cnt = 19;
+   for(int p = 0; p < 60; p++) {
+  for(int i = 0; i < 3; i++){
+    feedarray[p][i] = EEPROM.read(cnt);
+    cnt = cnt + 1;
+    }
+  } 
+}
+void writepumpee(){
+  cnt = 19;
+   for(int p = 0; p < 60; p++) {
+  for(int i = 0; i < 3; i++){
+    EEPROM.write(cnt, feedarray[p][i]);
+    cnt = cnt + 1;
+    }
+  }
+
+
+
+}
+
+void pntpmpee(){
+ m = 19;
+  for(int l = 0; l < 60; l++){
+    Serial.print(l);
+    Serial.print(" - ");
+    Serial.print(EEPROM.read(m));
+    m = m + 1;
+    Serial.print(":");
+    Serial.print(EEPROM.read(m));
+    m = m + 1;
+    Serial.print(" Duration: ");
+    Serial.print(EEPROM.read(m));
+    m = m + 1;
+    Serial.println();
+  } 
+}
+
+void pntpmp(){
+     int temp2 = 0;
+    for(int p = 0; p < 60; p++) {
+     // cnter = p;
+     if(feedarray[p][0] > 30){break;}
+      cnter = p;
+      temp2 = temp2 + 1; 
+      Serial.print(p);
+      Serial.print(" : ");
+      Serial.print(feedarray[p][0]);
+      Serial.print(":");
+      Serial.print(feedarray[p][1]);
+      Serial.print(" Duration: ");
+      Serial.print(feedarray[p][2]);
+      Serial.println(" ");
+   
+ 
+  }
+Serial.print("Total = ");
+
+Serial.print(temp2);
+
+Serial.println(" ");
+//Serial.println(cnter);
+  
+  
+}
+
+
+
+
+void setlightson(){
+  Serial.println("Enter on time in 24hr format.E.g");
+    while (Serial.available() > 0){
+        hron = Serial.parseInt();
+        mnon = Serial.parseInt();
+       // Serial.println(hron);
+        //Serial.println(mnon);
+        break;
+     }
+     if(hron < 24){
+      if(mnon < 60){
+      hhron = hron;
+      mmnon = mnon;
+      //Serial.println(hhron, DEC);
+      //Serial.println(mmnon, DEC);
+      EEPROM.write(0, hhron);
+      EEPROM.write(1, mmnon); 
+     }
+     else{
+      Serial.println("Min < 60");
+      }
+     }
+     else{
+     Serial.println("Hr < 24");
+     }
+}
+
+
+
+
+void setlightsoff(){
+
+  Serial.println("Enter off time in 24hr format.E.g 00:00.");
+       while (Serial.available() > 0){
+        hroff = Serial.parseInt();
+        mnoff = Serial.parseInt();
+        //Serial.println(hroff);
+        //Serial.println(mnoff);
+        break;
+       }
+           if(hroff < 24){
+            if(mnoff < 60){
+            hhroff = hroff;
+            mmnoff = mnoff;
+            //Serial.println(hhroff, DEC);
+            //Serial.println(mmnoff, DEC);
+            EEPROM.write(2, hhroff);
+            EEPROM.write(3, mmnoff); 
+          }
+           else{
+            Serial.println("min < 60.");
+            }
+          }
+          else{
+           Serial.println("Hr < 24");
+          }
+}
+
+
+
+
+
+void lightsmenu(){
+    Serial.println("Lights Menu");
+    Serial.println("1 Set Lights ON time");
+    Serial.println("2 Set lights OFF time");
+    while (Serial.available() > 0){
+     val = Serial.parseInt();
+  
+      switch (val){
+       case 0:
+       break;
+
+         break;
+       case 1:
+          setlightson();
+        break;
+      case 2:
+          setlightsoff();
+      //Serial.println("options 1:2");
+      break;
+      default:
+      break;
+  }
+  break;
+}
+}  
+  
+void printfromee(){
+Serial.println("Stored values");
+Serial.print("On: ");
+value = EEPROM.read(0);
+Serial.print(value);
+Serial.print(":");
+value = EEPROM.read(1);
+Serial.print(value);
+Serial.println(" ");
+Serial.print("Off: ");
+value = EEPROM.read(2);
+Serial.print(value);
+Serial.print(":");
+value = EEPROM.read(3);
+Serial.print(value);
+Serial.println(" ");
+
+}
+
+
+void pmpmenu(){
+         Serial.println("Pump timer setup");
+       Serial.println("1: Set timer style.");
+       Serial.println("2: Setfeed times");
+       Serial.println("3: Set on/off. 5 second resolution. ");
+         while (Serial.available() > 0){
+           val = Serial.parseInt();
+           switch (val){
+             case 0:
+             break;
+             case 1:
+                 Serial.println("1 Set timed feedings.");
+                 Serial.println("2: Set on/off duty cycle.");
+               
+                 while (Serial.available() > 0){
+                 val = Serial.parseInt();
+                 switch (val){
+                 case 0:
+                 Serial.println("Timed feeding mode set");
+                 break;
+                 case 1:
+                 Serial.println("Timed feeding mode set");
+                 break;
+                 case 2:
+                 Serial.println("Duty cycle feeding set");
+                 break;
+                 default:
+                 Serial.println("you wot mate!?");
+                 break;
+                  }
+                    break;
+                  }      
+               break;
+             case 2:
+             Serial.println("Schedule menu.");
+             Serial.println("1 -Add Entry.");
+             Serial.println("2 -Remove entry.");
+             Serial.println("3 -Print table from ram.");
+             Serial.println("4 -Print table from eeprom.");
+             Serial.println("5 -Load table from ee into ram.");
+             Serial.println("6 -Save ram table in ee.");
+               while (Serial.available() > 0){
+                  val = Serial.parseInt();
+                     switch (val){
+                       case 0:
+                        break;
+                       case 1:
+                        addentry();
+                        break;
+                       case 2:
+                       delentry();
+                        break;
+                       case 3:
+                       pntpmp();
+                        break;
+                       case 4:
+                       pntpmpee();
+                       break;
+                       case 5:
+                       getpumpee();
+                       break;
+                       case 6:
+                       writepumpee();
+                       break;
+                       default:
+                        break;
+                     }
+                     break;
+               }            
+               break;
+
+             default:
+               break;
+             }  
+        break;
+       }
+}
+
+void delentry(){
+Serial.println("Please enter the number of row.");
+                           while (Serial.available() > 0){
+                              val = Serial.parseInt();
+                              if(val < 61){
+                                Serial.println(val);
+                                Serial.print("data retreived: ");
+                                Serial.print(feedarray[val][0]);
+                                Serial.print(":");
+                                Serial.print(feedarray[val][1]);
+                                Serial.print(":");
+                                Serial.print(feedarray[val][2]);
+                                int uu = 0;
+                                for(uu = val; uu < 61; uu++){
+                                  feedarray[uu][0] = feedarray[uu + 1][0];
+                                  feedarray[uu][1] = feedarray[uu + 1][1];
+                                  feedarray[uu][2] = feedarray[uu + 1][2];
+                                }
+                                feedarray[60][0] = 255;
+                                feedarray[60][1] = 255;
+                                feedarray[60][2] = 255;
+                                
+                              }
+                    
+                           break;
+                        }
+                       }
+
+void addentry(){
+  
+ Serial.println("Enter integers as hr:min:duration");
+                    while(Serial.available() > 0){
+                      val = Serial.parseInt();
+                      val2 = Serial.parseInt();     
+                      val3 = Serial.parseInt();
+                       if(val < 25){
+                        if(val2 < 60){
+                          if(val3 < 60){
+                              
+                            int ttmp = 0;
+                            
+                            for(int v = 0; v < 60; v++) {
+                              if(feedarray[v][0] <= 30){ttmp = ttmp + 1;}
+                                  }
+                              //Serial.print("ttmp = ");    
+                              //Serial.println(ttmp);
+                              //Serial.print("Counted: "); Serial.print(ttmp); Serial.print(" elements");  
+                              //Serial.println(" "); 
+                          if(ttmp > 0){
+                            //Serial.println("Looks to be greater than zero elements"); 
+                            //int www = ttmp; 
+
+                            feedarray[ttmp][0] = val;
+                          feedarray[ttmp][1] = val2;
+                          feedarray[ttmp][2] = val3;
+                          
+                            
+                          }else{
+                            //Serial.println("ELements numbers = 0"); 
+                          feedarray[0][0] = val;
+                          feedarray[0][1] = val2;
+                          feedarray[0][2] = val3;
+                          }
+                          Serial.println("Entry added");
+                           }else{Serial.println("Duration < 60");}                   
+                           }else{Serial.println("Min < 60.");}
+                           }else{Serial.println("Hhs < 24.");}
+                             
+                          break;
+                               }
+
+pntpmp();
+}
+
+
+
+void mainmenu(){
+while (Serial.available() > 0){
+ val = Serial.parseInt();
+  switch (val){
+    case 0:
+       Serial.println("Menu");
+       Serial.println("1 Lights");
+       Serial.println("2 Pump");
+       Serial.println("3 Stored values");
+       break;
+    case 1:
+       lightsmenu();
+       break;
+    case 2:
+    pmpmenu();
+        break;
+    case 3:
+      printfromee();
+      break;
+    default:
+      Serial.println("Menu");
+      Serial.println("1 Lights");
+      Serial.println("2 Pump");
+      Serial.println("3 Stored values");
+    break;
+    }
+  break;
+  }
+}
+
+void lighttimer(){
+//  Serial.print("Time = ");
+//  Serial.print(hr);
+//  Serial.print(":");
+//Serial.print(minu);
+//Serial.println(" ");
+//Serial.print("On = ");
+//Serial.print(hhron);
+//Serial.print(":");
+//Serial.print(mmnon);
+//Serial.println(" ");
+//Serial.print("Off = ");
+//Serial.print(hhroff);
+//Serial.print(":");
+//Serial.print(mmnoff);
+//Serial.println(" ");
+  
+  
+  
+  
+  
+  
+  if(hr >= hhron){
+  lights = true;
+   if(hhron < hhroff){
+    if(hr >= hhroff){
+      lights = false;}   
+   }
+ }
+ else{
+    if(hhron > hhroff){
+      if(hr < hhroff){
+      lights = true;}
+    }
+     else{
+    lights = false;
+      }
+}
+//Serial.println(lights);
+}
+
+
+void mincnter(int k){
+
+
+
+
+
+}
+
+
+
+void pumptimer(){
+  
+  
+  
+  
+for(int n = 0; n < 60; n++){
+ //   Serial.print("hr = ");
+ //   Serial.print(hr);
+ //   Serial.print("       ");
+ //   Serial.print("minu = ");
+ //   Serial.print(minu);
+ //   Serial.println(" ");
+ //   Serial.print("Table row ");
+ //   Serial.print(n);
+ //   Serial.print(" : ");
+ //   Serial.println(feedarray[n][0]);
+ //   Serial.println("Rollover val: ");
+ //   Serial.println(feedarray[n][1] + feedarray[n][2]);
+//    Serial.println(feedarray[n][1] + feedarray[n][2]);
+
+
+if(hr == 0){		
+  if(feedarray[n][0] == 23){
+        int temp2 = 0;
+        temp2 = feedarray[n][1] + feedarray[n][2];
+        if(temp2 >= 60){
+        temp2 = temp2 - 60;
+     //   Serial.print("temp2 =");
+     //   Serial.println(temp2);
+          if(minu < temp2){
+                  pumps = true;
+              //    Serial.println("State three:3 is recognized, pumps  = true.");
+                  //Serial.println("--------- ------- -------- ---------");
+                  break;
+                //pump on
+  
+            }else{pumps = false;
+    //          Serial.println("State Two:2 is recognized, pumps  = false.");
+             // Serial.println("--------- ------- -------- ---------");
+            }
+        }else{
+          pumps = false;
+          //Serial.println("State Two:2 is recognized, pumps  = false.");
+        }
+         }else{
+           pumps = false;
+         //     Serial.println("State Two:2 is recognized, pumps  = false.");
+              //Serial.println("--------- ------- -------- ---------");
+         }
+}
+
+//if(hr == feedarray[n][0]){Serial. print("Hour match");} 
+if(hr == feedarray[n][0]){
+//  Serial.print("Hour match ");
+//  Serial.println(feedarray[n][1] + feedarray[n][2]);
+  int ggrh = feedarray[n][1] + feedarray[n][2];
+  if(minu >= feedarray[n][1]){
+   if(minu < ggrh){
+   pumps = true;
+//   Serial.println(feedarray[n][1] + feedarray[n][2]);
+ //  Serial.println("State Zero:0 is recognized, pumps  = true.");
+   //Serial.println("--------- ------- -------- ---------");
+   break;
+       }
+//   feed, set pump high
+   
+  }
+  }
+else{
+      if(hr - 1 == feedarray[n][0]){
+        int temp = 0;
+        temp = feedarray[n][1] + feedarray[n][2];
+        if(temp >= 60){
+        temp = temp - 60;
+       // Serial.print("temp =");
+       // Serial.println(temp);
+          if(minu < temp){
+                  pumps = true;
+                 // Serial.println("State One:1 is recognized, pumps  = true.");
+                 // Serial.println("--------- ------- -------- ---------");
+                  break;
+                //pump on
+  
+            }else{pumps = false;
+              //Serial.println("State Two:2 is recognized, pumps  = false.");
+              //Serial.println("--------- ------- -------- ---------");
+            }
+        }else{
+            pumps = false;
+           // Serial.println("State Two:2 is recognized, pumps  = false.");
+         }
+         }else{
+           pumps = false;
+           //   Serial.println("State Two:2 is recognized, pumps  = false.");
+           //   Serial.println("--------- ------- -------- ---------");
+         }
+         }
+}
+
+
+
+//Serial.println("End of pmptimer.");
+//Serial.println(" ");
+//Serial.println(" ");
+
+}
+
+void loop(){
+  gettime();
+  mainmenu();
+  //Serial.println("Looping!");
+  pumptimer();
+  lighttimer();
+
+if(pumps == true){
+  Serial.println("Pump, Pump, Pump it up!");
+  digitalWrite(ppin, HIGH);}
+else{
+digitalWrite(ppin, LOW);
+}
+
+if(lights == true){
+  Serial.println("Let there be Light!");
+  digitalWrite(lpin, HIGH);}
+else{
+    digitalWrite(lpin, LOW);
+  }
+
+
+
+
+
+
+
+}
+  
+  
+  
+  
+  
+  
+  
+    
+  
+//void editentry(){
+//
+//        Serial.println("000000000000000000000000");
+//        while (Serial.available() > 0){
+//            tmp = Serial.parseInt();
+//            Serial.print("Editing line :");
+//            Serial.print(tmp);
+//            Serial.println(" ");
+//            Serial.println("Enter integers as hr:min:dur");
+ //           while(Serial.available() > 0){
+  //            val = Serial.parseInt();
+   //           val2 = Serial.parseInt();     
+    //          val3 = Serial.parseInt();
+     //          if(val < 25){
+      //          if(val2 < 60){
+       //          if(val3 < 60){
+      //             feedarray[tmp][0] = val;
+    //               feedarray[tmp][1] = val2;
+  //                 feedarray[tmp][2] = val3;
+//                   Serial.println("Entry edited");
+//                   }else{Serial.println("Dur <60");}                   
+//                   }else{Serial.println("min <60.");}
+//                   }else{Serial.println("Hours<24.");}
+//                             
+//                   break;
+//                   }
+
+//     break;
+//}
+//Serial.print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+//}
+  
+  
+  
+  
+  
+  
+  
+  
